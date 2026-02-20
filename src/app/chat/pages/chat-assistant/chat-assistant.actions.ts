@@ -62,5 +62,7 @@ export const ChatAssistantActions = createActionGroup({
     'new chat clicked': props<{ mode: ChatType }>(),
     'back button clicked': emptyProps(),
     'search query changed': props<{ query: string }>(),
+    'voice chat enabled': emptyProps(),
+    'voice chat disabled': emptyProps(),
   },
 });
