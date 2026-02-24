@@ -66,7 +66,6 @@ export class ChatListScreenComponent implements OnInit {
   searchQuery$: Observable<string>;
   searchQueryValue = '';
 
-
   constructor(
     private readonly datePipe: DatePipe,
     private readonly translate: TranslateService,
@@ -137,8 +136,20 @@ export class ChatListScreenComponent implements OnInit {
     this.store.dispatch(ChatAssistantActions.searchQueryChanged({ query }));
   }
 
+  protected getGreetingKey(): string {
+    const hour = new Date().getHours();
+
+    if (hour >= 5 && hour < 12) {
+      return 'CHAT.INITIAL.GREETING_MORNING';
+    } else if (hour >= 12 && hour < 18) {
+      return 'CHAT.INITIAL.GREETING_AFTERNOON';
+    } else {
+      return 'CHAT.INITIAL.GREETING_EVENING';
+    }
+  }
+
   private getDaysDifference(date: Date): number {
     const now = new Date();
     return (now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24);
-  }
+  } 
 }

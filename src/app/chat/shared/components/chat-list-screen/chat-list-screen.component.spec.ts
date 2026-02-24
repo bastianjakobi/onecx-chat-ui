@@ -279,4 +279,30 @@ describe('ChatListScreenComponent', () => {
       expect(component.selectMode.emit).toHaveBeenCalledWith(ChatType.HumanDirectChat);
     });
   });
+
+  describe('getGreetingKey', () => {
+    it('returns CHAT.INITIAL.GREETING_MORNING when hour is 6', () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(6 as number);
+
+      const key = (component as any).getGreetingKey();
+
+      expect(key).toBe('CHAT.INITIAL.GREETING_MORNING');
+    });
+
+    it('returns CHAT.INITIAL.GREETING_AFTERNOON when hour is 13', () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(13 as number);
+
+      const key = (component as any).getGreetingKey();
+
+      expect(key).toBe('CHAT.INITIAL.GREETING_AFTERNOON');
+    });
+
+    it('returns CHAT.INITIAL.GREETING_EVENING when hour is 22', () => {
+      jest.spyOn(Date.prototype, 'getHours').mockReturnValue(22 as number);
+      
+      const key = (component as any).getGreetingKey();
+
+      expect(key).toBe('CHAT.INITIAL.GREETING_EVENING');
+    });
+  });
 });
