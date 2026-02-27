@@ -4,6 +4,7 @@ import {
   Component,
   ElementRef,
   EventEmitter,
+  inject,
   Input,
   OnChanges,
   Output,
@@ -17,7 +18,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { TranslateModule, TranslateService } from '@ngx-translate/core';
+import { TranslateModule } from '@ngx-translate/core';
 import { AvatarModule } from 'primeng/avatar';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -27,6 +28,9 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { ChatMessage } from './chat.viewmodel';
 import { VoiceComponent } from '../voice/voice.component';
 import { Chat } from '../../generated';
+import { AppConfigService } from '@onecx/angular-integration-interface';
+import { BASE_URL } from '@onecx/angular-remote-components';
+import { firstValueFrom, ReplaySubject } from 'rxjs';
 
 @Component({
   selector: 'app-chat',
@@ -48,7 +52,6 @@ import { Chat } from '../../generated';
   ],
 })
 export class ChatComponent implements OnChanges, AfterViewChecked {
-
   @Input()
   chat: Chat | undefined;
 
@@ -78,11 +81,19 @@ export class ChatComponent implements OnChanges, AfterViewChecked {
 
   @ViewChild('scrollContainer') private scrollContainer: ElementRef | undefined;
 
+  public voiceAiEnabled?: boolean;
   private shouldScrollToBottom = false;
+  private appConfigService = inject(AppConfigService);
+  private readonly baseUrl$ = inject(BASE_URL) as any as ReplaySubject<string>;
 
   public formGroup: FormGroup;
 
-  constructor(private translateService: TranslateService) {
+  constructor() {
+    firstValueFrom(this.baseUrl$).then(async (baseUrl) => {
+      await this.appConfigService.init(baseUrl);
+      this.voiceAiEnabled =
+        this.appConfigService.getProperty('VOICE_AI_ENABLED') === 'true';
+    });
     this.formGroup = new FormGroup({
       message: new FormControl(null, [
         Validators.minLength(1),
