@@ -2,7 +2,10 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ChatComponent } from './chat.component';
 import { TranslateTestingModule } from 'ngx-translate-testing';
 import { PortalCoreModule } from '@onecx/portal-integration-angular';
+import { BASE_URL } from '@onecx/angular-remote-components';
+import { ReplaySubject } from 'rxjs';
 import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { provideHttpClient } from '@angular/common/http';
 
 describe('ChatComponent', () => {
   let component: ChatComponent;
@@ -21,7 +24,9 @@ describe('ChatComponent', () => {
         ).withTranslations('de', require('./../../../../assets/i18n/de.json')),
       ],
       providers: [
+        provideHttpClient(),
         provideHttpClientTesting(),
+        { provide: BASE_URL, useValue: new ReplaySubject<string>(1) },
       ],
     }).compileComponents();
 
