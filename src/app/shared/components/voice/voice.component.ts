@@ -76,7 +76,10 @@ export class VoiceComponent implements OnDestroy {
   }
 
   public async onClick() {
-    if (!this.voiceChatEnabled()) {
+    if (this.voiceChatEnabled()) {
+      this.voiceService.cleanup();
+      this.toggleVoiceChat.emit(false);
+    } else {
       try {
         const chatId = this.chat().id;
         if (!chatId) return;
@@ -85,10 +88,8 @@ export class VoiceComponent implements OnDestroy {
         this.toggleVoiceChat.emit(true);
       } catch (error) {
         this.toggleVoiceChat.emit(false);
+        throw error;
       }
-    } else {
-      this.voiceService.cleanup();
-      this.toggleVoiceChat.emit(false);
     }
   }
 
@@ -96,4 +97,3 @@ export class VoiceComponent implements OnDestroy {
     this.voiceService.toggleMute();
   }
 }
-
