@@ -24,8 +24,9 @@ import { bootstrapRemoteComponent } from '@onecx/angular-webcomponents';
 import {
   createRemoteComponentTranslateLoader,
   providePortalDialogService,
-  UserService,
+  UserService
 } from '@onecx/portal-integration-angular';
+import { AppConfigService } from '@onecx/angular-integration-interface';
 import { ReplaySubject } from 'rxjs';
 import { chatAssistantFeature } from 'src/app/chat/chat.reducers';
 import { ChatAssistantEffects } from 'src/app/chat/pages/chat-assistant/chat-assistant.effects';
@@ -83,6 +84,7 @@ bootstrapRemoteComponent(
       multi: true,
     },
     ChatInternalService,
+    AppConfigService,
   ],
   {usePortalLayoutStyles: false}
 );
