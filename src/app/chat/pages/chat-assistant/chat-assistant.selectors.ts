@@ -11,7 +11,7 @@ export const chatAssistantSelectors = createChildSelectors(
   initialState
 );
 
-const mapChatTypeToTitleKey = (t?: ChatType | string | null) => {
+export const mapChatTypeToTitleKey = (t?: ChatType | string | null) => {
   if (!t) return 'CHAT.TITLE.DEFAULT';
   const s = String(t);
   switch (s) {
@@ -26,18 +26,31 @@ const mapChatTypeToTitleKey = (t?: ChatType | string | null) => {
   }
 };
 
+export const selectChatTopic = createSelector(
+  chatAssistantSelectors.selectCurrentChat,
+  chatFeature.selectAssistant,
+  (currentChat, state) => {
+    if (currentChat?.topic && currentChat.topic.trim().length > 0) {
+      return currentChat.topic;
+    }
+    const fallbackType = currentChat?.type ?? state.selectedChatMode;
+    return mapChatTypeToTitleKey(fallbackType);
+  }
+);
+
 export const selectChatAssistantViewModel = createSelector(
   chatAssistantSelectors.selectChats,
   chatAssistantSelectors.selectCurrentChat,
   chatAssistantSelectors.selectCurrentMessages,
   chatFeature.selectAssistant,
+  selectChatTopic,
   (
     chats: Chat[],
     currentChat: Chat | undefined,
     currentMessages: Message[] | undefined,
     state,
+    chatTitleKey: string
   ): ChatAssistantViewModel => {
-    const chatTitleKey = mapChatTypeToTitleKey(currentChat?.type ?? state.selectedChatMode);
     return {
       chats,
       currentChat: currentChat,

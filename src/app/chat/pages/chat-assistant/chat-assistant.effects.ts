@@ -13,7 +13,7 @@ import {
   MessageType,
 } from '../../../shared/generated';
 import { ChatAssistantActions } from './chat-assistant.actions';
-import { chatAssistantSelectors } from './chat-assistant.selectors';
+import { chatAssistantSelectors, selectChatTopic } from './chat-assistant.selectors';
 
 const PAGE_SIZE = 20;
 const CHAT_TOPIC_LENGTH = 30;
@@ -64,6 +64,7 @@ export class ChatAssistantEffects {
         ChatAssistantActions.chatInitialized,
         ChatAssistantActions.chatCreationSuccessful,
         ChatAssistantActions.searchQueryChanged,
+        ChatAssistantActions.backButtonClicked,
       ),
       switchMap(() => of(ChatAssistantActions.loadChats({ reset: true })))
     );
@@ -204,10 +205,11 @@ export class ChatAssistantEffects {
       ofType(ChatAssistantActions.chatCreated),
       concatLatestFrom(() => [
         this.store.select(chatAssistantSelectors.selectUser),
-        this.store.select(chatAssistantSelectors.selectTopic),
+        this.store.select(chatAssistantSelectors.selectCurrentChat),
       ]),
       filter(([, user]) => user !== undefined),
-      switchMap(([, user, topic]) => {
+      switchMap(([, user, currentChat]) => {
+        const topic = currentChat?.topic ?? '';
         return this.createChat(user as string, topic).pipe(
           map((chat) => {
             return ChatAssistantActions.chatCreationSuccessful({
@@ -231,18 +233,18 @@ export class ChatAssistantEffects {
       ofType(ChatAssistantActions.createNewChatForMessage),
       concatLatestFrom(() => [
         this.store.select(chatAssistantSelectors.selectUser),
-        this.store.select(chatAssistantSelectors.selectTopic),
         this.store.select(chatAssistantSelectors.selectCurrentChat),
+        this.store.select(selectChatTopic),
+        this.store.select(chatAssistantSelectors.selectSelectedChatMode),
       ]),
       filter(([, user]) => user !== undefined),
-      switchMap(([action, user, topic, currentChat]) => {
+      switchMap(([action, user, currentChat, chatTopic, selectedChatMode]) => {
         const messageExtract =
           action.message.length > CHAT_TOPIC_LENGTH
             ? action.message.substring(0, CHAT_TOPIC_LENGTH) + '...'
             : action.message;
-        const chatTopic = `${topic}: ${messageExtract}`;
-        const chatType = currentChat?.type ?? ChatType.AiChat;
-        return this.createChat(user as string, chatTopic, chatType).pipe(
+        const chatType = currentChat?.type ?? selectedChatMode;
+        return this.createChat(user as string, chatTopic, chatType as ChatType, messageExtract).pipe(
           switchMap((chat) =>
             of(
               ChatAssistantActions.chatCreationSuccessful({ chat }),
@@ -261,11 +263,17 @@ export class ChatAssistantEffects {
     );
   });
 
-  createChat = (userEmail: string, topic: string, chatType: ChatType = ChatType.AiChat) => {
+  createChat(
+    userEmail: string,
+    topic: string,
+    chatType: ChatType = ChatType.AiChat,
+    summary?: string,
+  ) {
     return this.chatInternalService.createChat({
       type: chatType,
       topic: topic,
       participants: [userEmail],
+      summary: summary,
     });
   };
 

@@ -5,7 +5,6 @@ export interface ChatAssistantState {
   chats: Chat[];
   currentChat: Chat | undefined;
   currentMessages: Message[] | undefined;
-  topic: string;
   selectedChatMode: ChatType | null;
   chatInitialized: boolean;
   searchQuery: string;

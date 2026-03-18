@@ -5,7 +5,7 @@ import { provideMockActions } from '@ngrx/effects/testing';
 import { routerNavigatedAction, RouterNavigatedPayload } from '@ngrx/router-store';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
 import { Observable, of, Subject, throwError } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { take, toArray } from 'rxjs/operators';
 import { UserService } from '@onecx/angular-integration-interface';
 import { ChatInternalService } from 'src/app/shared/services/chat-internal.service';
 import {
@@ -15,7 +15,7 @@ import {
 } from '../../../shared/generated';
 import { ChatAssistantActions } from './chat-assistant.actions';
 import { ChatAssistantEffects } from './chat-assistant.effects';
-import { chatAssistantSelectors } from './chat-assistant.selectors';
+import { chatAssistantSelectors, selectChatTopic } from './chat-assistant.selectors';
 
 // Mock only the filterForNavigatedTo function from @onecx/ngrx-accelerator
 jest.mock('@onecx/ngrx-accelerator', () => ({
@@ -517,7 +517,11 @@ describe('ChatAssistantEffects', () => {
     beforeEach(() => {
       chatInternalService.createChat.mockReturnValue(of(mockChat));
       store.overrideSelector(chatAssistantSelectors.selectUser, mockUser);
-      store.overrideSelector(chatAssistantSelectors.selectTopic, 'test-topic');
+      store.overrideSelector(chatAssistantSelectors.selectCurrentChat, { 
+        id: 'chat1', 
+        topic: 'test-topic', 
+        type: ChatType.AiChat 
+      });
     });
 
     it('should create chat when chatCreated action is dispatched', (done) => {
@@ -559,13 +563,33 @@ describe('ChatAssistantEffects', () => {
         complete: () => done()
       });
     });
+
+    it('should handle optional chaining when currentChat is null in createChat$', (done) => {
+      store.overrideSelector(chatAssistantSelectors.selectCurrentChat, null as any);
+
+      const action = ChatAssistantActions.chatCreated();
+      actions$ = of(action);
+
+      effects.createChat$.subscribe(result => {
+        expect(chatInternalService.createChat).toHaveBeenCalledWith(
+          expect.objectContaining({ topic: '' })
+        );
+        done();
+      });
+    });
   });
 
   describe('createChatAndSendMessage$', () => {
     beforeEach(() => {
       chatInternalService.createChat.mockReturnValue(of(mockChat));
       store.overrideSelector(chatAssistantSelectors.selectUser, mockUser);
-      store.overrideSelector(chatAssistantSelectors.selectTopic, 'chat-assistant');
+      store.overrideSelector(chatAssistantSelectors.selectSelectedChatMode, ChatType.AiChat as any);
+      store.overrideSelector(selectChatTopic, 'chat-assistant');
+      store.overrideSelector(chatAssistantSelectors.selectCurrentChat, {
+        id: 'chat1',
+        topic: 'chat-assistant',
+        type: ChatType.AiChat
+      });
     });
 
     it('should create chat and send message when createNewChatForMessage action is dispatched', (done) => {
@@ -573,11 +597,15 @@ describe('ChatAssistantEffects', () => {
       const action = ChatAssistantActions.createNewChatForMessage({ message });
       actions$ = of(action);
 
-      effects.createChatAndSendMessage$.pipe(take(1)).subscribe(result => {
-        expect(result).toEqual(ChatAssistantActions.chatCreationSuccessful({ chat: mockChat }));
+      effects.createChatAndSendMessage$.pipe(toArray()).subscribe(result => {
+        expect(result).toEqual([
+          ChatAssistantActions.chatCreationSuccessful({ chat: mockChat }),
+          ChatAssistantActions.messageSent({ message })
+        ]);
         expect(chatInternalService.createChat).toHaveBeenCalledWith({
           type: ChatType.AiChat,
-          topic: 'chat-assistant: This is a test message',
+          topic: 'chat-assistant',
+          summary: message,
           participants: ['test@example.com']
         });
         done();
@@ -592,7 +620,8 @@ describe('ChatAssistantEffects', () => {
       effects.createChatAndSendMessage$.pipe(take(1)).subscribe(result => {
         expect(chatInternalService.createChat).toHaveBeenCalledWith(
           expect.objectContaining({
-            topic: 'chat-assistant: This is a very long message th...'
+            topic: 'chat-assistant',
+            summary: 'This is a very long message th...'
           })
         );
         done();
@@ -622,6 +651,30 @@ describe('ChatAssistantEffects', () => {
         expect(chatInternalService.createChat).toHaveBeenCalledWith(
           expect.objectContaining({ type: ChatType.AiChat })
         );
+        done();
+      });
+    });
+
+    it('should use chat type as topic when currentChat topic is empty', (done) => {
+      const message = 'This is a very long message that should be truncated to fit the chat topic length limit';
+      store.overrideSelector(chatAssistantSelectors.selectCurrentChat, { 
+        id: 'new', 
+        topic: '',
+        type: ChatType.HumanDirectChat 
+      });
+      store.overrideSelector(selectChatTopic, 'CHAT.TITLE.DIRECT');
+
+      const action = ChatAssistantActions.createNewChatForMessage({ message });
+      actions$ = of(action);
+
+      effects.createChatAndSendMessage$.pipe(toArray()).subscribe(result => {
+        expect(chatInternalService.createChat).toHaveBeenCalledWith(
+          expect.objectContaining({ topic: 'CHAT.TITLE.DIRECT' })
+        );
+        expect(result).toEqual([
+          ChatAssistantActions.chatCreationSuccessful({ chat: mockChat }),
+          ChatAssistantActions.messageSent({ message })
+        ]);
         done();
       });
     });

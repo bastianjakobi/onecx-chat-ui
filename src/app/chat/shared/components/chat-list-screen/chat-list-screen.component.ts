@@ -14,9 +14,10 @@ import { map, Observable, of, switchMap, forkJoin } from 'rxjs';
 import { Chat, ChatType } from 'src/app/shared/generated';
 import { ChatHeaderComponent } from '../chat-header/chat-header.component';
 import { ChatOptionButtonComponent } from '../chat-option-button/chat-option-button.component';
+import { ChatSettingsComponent } from '../chat-settings/chat-settings.component';
 import { ChatAssistantActions } from 'src/app/chat/pages/chat-assistant/chat-assistant.actions';
 import { Store } from '@ngrx/store';
-import { chatAssistantSelectors } from 'src/app/chat/pages/chat-assistant/chat-assistant.selectors';
+import { chatAssistantSelectors, mapChatTypeToTitleKey } from 'src/app/chat/pages/chat-assistant/chat-assistant.selectors';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { FormsModule } from '@angular/forms';
 import { ScrollerModule } from 'primeng/scroller';
@@ -29,6 +30,7 @@ import { ScrollerModule } from 'primeng/scroller';
     CommonModule,
     ChatHeaderComponent,
     ChatOptionButtonComponent,
+    ChatSettingsComponent,
     TranslateModule,
     CardModule,
     ButtonModule,
@@ -47,7 +49,8 @@ import { ScrollerModule } from 'primeng/scroller';
   styleUrls: ['./chat-list-screen.component.scss'],
 })
 export class ChatListScreenComponent implements OnInit {
-  @Output() selectMode = new EventEmitter<ChatType | 'close'>();
+  protected readonly ChatType = ChatType;
+  @Output() selectMode = new EventEmitter<{ mode: ChatType | 'close'; chatName?: string }>();
   @Output() chatSelected = new EventEmitter<Chat>();
   @Output() deleteChat = new EventEmitter<Chat>();
 
@@ -67,6 +70,8 @@ export class ChatListScreenComponent implements OnInit {
   filteredChats$: Observable<Chat[]>;
   searchQuery$: Observable<string>;
   protected readonly filteredChatsSignal: Signal<Chat[]>;
+  isCreatingChat = false;
+  pendingMode: ChatType | null = null;
 
   constructor(
     private readonly datePipe: DatePipe,
@@ -135,9 +140,24 @@ export class ChatListScreenComponent implements OnInit {
 
   onChatModeChange(mode: ChatType): void {
     this.selectedChatMode = mode;
-    this.selectMode.emit(mode);
+    this.pendingMode = mode;
+    this.isCreatingChat = true;
   }
 
+  onSettingsCreate(value: any): void {
+    if (this.pendingMode) {
+      this.selectMode.emit({ mode: this.pendingMode, chatName: value.chatName });
+    }
+    this.pendingMode = null;
+    this.isCreatingChat = false;
+  }
+
+ getChatTitleKey(chat: Chat): string {
+    return (chat.topic && chat.topic.trim().length > 0)
+    ? chat.topic
+    : mapChatTypeToTitleKey(chat.type);
+  }
+  
   onSearchQueryChange(query: string): void {
     this.searchQueryValue = query;
     this.store.dispatch(ChatAssistantActions.searchQueryChanged({ query }));
