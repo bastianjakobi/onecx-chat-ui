@@ -8,6 +8,7 @@ import { catchError, filter, map, of, switchMap } from 'rxjs';
 import { UserService } from '@onecx/angular-integration-interface';
 import { ChatInternalService } from 'src/app/shared/services/chat-internal.service';
 import {
+  Chat,
   ChatsService,
   ChatType,
   MessageType,
@@ -170,55 +171,33 @@ export class ChatAssistantEffects {
     );
   });
 
-  updateChatTopic$ = createEffect(() => {
+  saveSettings$ = createEffect(() => {
     return this.actions$.pipe(
-      ofType(ChatAssistantActions.updateCurrentChatTopic),
-      concatLatestFrom(() => [
-        this.store.select(chatAssistantSelectors.selectCurrentChat),
-      ]),
-      filter(([, chat]) => chat?.id !== undefined && chat.id !== 'new'),
-      switchMap(([action, chat]) => {
-        return this.chatInternalService
-          .updateChat(chat?.id ?? '', {
-            topic: action.topic,
-          })
-          .pipe(
-            map((updatedChat) => {
-              return ChatAssistantActions.chatCreationSuccessful({
-                chat: updatedChat,
-              });
-            }),
-            catchError((error) =>
-              of(
-                ChatAssistantActions.chatCreationFailed({
-                  error,
-                }),
-              ),
-            ),
-          );
+      ofType(ChatAssistantActions.saveSettingsClicked),
+      concatLatestFrom(() => this.store.select(chatAssistantSelectors.selectCurrentChat)),
+      filter(([, currentChat]) => !!currentChat),
+      map(([action, currentChat]) => {
+        const payload: Partial<Chat> = {
+          ...currentChat,
+          topic: action.chatName ?? currentChat!.topic ?? '',
+        };
+        return ChatAssistantActions.updateCurrentChat({ chat: payload });
       }),
     );
   });
 
-  createChat$ = createEffect(() => {
+  updateCurrentChat$ = createEffect(() => {
     return this.actions$.pipe(
-      ofType(ChatAssistantActions.chatCreated),
-      concatLatestFrom(() => [
-        this.store.select(chatAssistantSelectors.selectUser),
-        this.store.select(chatAssistantSelectors.selectCurrentChat),
-      ]),
-      filter(([, user]) => user !== undefined),
-      switchMap(([, user, currentChat]) => {
-        const topic = currentChat?.topic ?? '';
-        return this.createChat(user as string, topic).pipe(
-          map((chat) => {
-            return ChatAssistantActions.chatCreationSuccessful({
-              chat,
-            });
-          }),
+      ofType(ChatAssistantActions.updateCurrentChat),
+      concatLatestFrom(() => [this.store.select(chatAssistantSelectors.selectCurrentChat)]),
+      filter(([, chat]) => chat?.id !== undefined && chat.id !== 'new'),
+      switchMap(([action, chat]) => {
+        const updatedChat = { ...chat, ...action.chat } as Chat;
+        return this.chatInternalService.updateChat(chat!.id ?? '', action.chat).pipe(
+          map(() => ChatAssistantActions.chatUpdateSuccessful({ chat: updatedChat })),
           catchError((error) =>
             of(
-              ChatAssistantActions.chatCreationFailed({
+              ChatAssistantActions.chatUpdateFailed({
                 error,
               }),
             ),

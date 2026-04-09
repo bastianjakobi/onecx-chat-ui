@@ -1,4 +1,4 @@
-import { ChatType, MessageType } from 'src/app/shared/generated';
+import { Chat, ChatType, MessageType } from 'src/app/shared/generated';
 import { ChatAssistantActions } from './chat-assistant.actions';
 import { chatAssistantReducer, initialState } from './chat-assistant.reducers';
 import { ChatAssistantState } from './chat-assistant.state';
@@ -40,6 +40,7 @@ describe('ChatAssistant Reducer', () => {
         currentMessages: undefined,
         searchQuery: '',
         selectedChatMode: null,
+        settingsOpen: false,
         totalAvailableChats: undefined,
       });
     });
@@ -235,7 +236,8 @@ describe('ChatAssistant Reducer', () => {
    it('should set currentChat and clear messages when chatSelected is dispatched', () => {
       const stateWithMessages: ChatAssistantState = {
         ...initialState,
-        currentMessages: mockMessages
+        currentMessages: mockMessages,
+        settingsOpen: true,
       };
 
       const action = ChatAssistantActions.chatSelected({
@@ -247,7 +249,8 @@ describe('ChatAssistant Reducer', () => {
       expect(result).toEqual({
         ...stateWithMessages,
         currentChat: mockChat,
-        currentMessages: []
+        currentMessages: [],
+        settingsOpen: false,
       });
     });
 
@@ -268,7 +271,49 @@ describe('ChatAssistant Reducer', () => {
         ...stateWithMessages,
         currentChat: mockChat,
         currentMessages: [],
+      });
+    });
+
+    it('should set currentChat and set currentMessages to [] when currentMessages is undefined on chatCreationSuccessful', () => {
+      const stateNoMessages: ChatAssistantState = {
+        ...initialState,
         chats: mockChats,
+        // currentMessages is undefined by default
+      };
+
+      const action = ChatAssistantActions.chatCreationSuccessful({
+        chat: mockChat
+      });
+
+      const result = chatAssistantReducer(stateNoMessages, action);
+
+      expect(result).toEqual({
+        ...stateNoMessages,
+        currentChat: mockChat,
+        currentMessages: [],
+        chats: mockChats,
+      });
+    });
+  });
+
+  describe('chatUpdateSuccessful action', () => {
+    it('should update currentChat and preserve currentMessages when chatUpdateSuccessful is dispatched', () => {
+      const stateWithMessages: ChatAssistantState = {
+        ...initialState,
+        currentChat: mockChat,
+        settingsOpen: true,
+      };
+
+      const updatedChat = { ...mockChat, topic: 'Updated Topic' };
+      const action = ChatAssistantActions.chatUpdateSuccessful({
+        chat: updatedChat
+      });
+
+      const result = chatAssistantReducer(stateWithMessages, action);
+
+      expect(result).toEqual({
+        ...stateWithMessages,
+        currentChat: updatedChat,
       });
     });
   });
@@ -328,6 +373,7 @@ describe('ChatAssistant Reducer', () => {
       expect(result.currentChat).toEqual({
         id: 'new',
         topic: '',
+        participants: [],
         type: ChatType.AiChat
       });
       expect(result.currentMessages).toEqual([]);
@@ -343,31 +389,10 @@ describe('ChatAssistant Reducer', () => {
       expect(result.currentChat).toEqual({
         id: 'new',
         topic: 'My Direct Chat',
+        participants: [],
         type: ChatType.HumanDirectChat
       });
       expect(result.currentMessages).toEqual([]);
-    });
-  });
-
-  describe('updateCurrentChatTopic action', () => {
-    it('should update currentChat topic when currentChat exists', () => {
-      const stateWithCurrentChat: ChatAssistantState = {
-        ...initialState,
-        currentChat: { id: 'chat1', topic: 'Old Topic', type: ChatType.AiChat } as any,
-      };
-
-      const action = ChatAssistantActions.updateCurrentChatTopic({ topic: 'New Topic' });
-      const result = chatAssistantReducer(stateWithCurrentChat, action);
-
-      expect(result.currentChat).toEqual({ id: 'chat1', topic: 'New Topic', type: ChatType.AiChat });
-    });
-
-    it('should not update currentChat when currentChat is undefined', () => {
-      const action = ChatAssistantActions.updateCurrentChatTopic({ topic: 'New Topic' });
-      const result = chatAssistantReducer(initialState, action);
-
-      expect(result.currentChat).toBeUndefined();
-      expect(result).toEqual(initialState);
     });
   });
 
@@ -438,6 +463,41 @@ describe('ChatAssistant Reducer', () => {
     });
   });
 
+  describe('mergeChat and updateChatsInList behavior (via reducer)', () => {
+    it('updates the matching chat in the chats array when updateCurrentChat is dispatched', () => {
+      const chats: Chat[] = [ { id: 'c1', topic: 'Old', type: ChatType.AiChat }, { id: 'c2', topic: 'Other', type: ChatType.AiChat } ];
+      const state: ChatAssistantState = { ...initialState, chats, currentChat: chats[0] };
+
+      const action = ChatAssistantActions.updateCurrentChat({ chat: { id: 'c1', topic: 'Updated' } });
+
+      const result = chatAssistantReducer(state, action);
+
+      expect(result.chats).toEqual([ { id: 'c1', topic: 'Updated', type: ChatType.AiChat }, { id: 'c2', topic: 'Other', type: ChatType.AiChat } ]);
+    });
+
+    it('does not modify chats when updated chat id does not exist in list', () => {
+      const chats: Chat[] = [ { id: 'c1', topic: 'Old', type: ChatType.AiChat } ];
+      const state: ChatAssistantState = { ...initialState, chats, currentChat: { id: 'other', topic: 'Other', type: ChatType.AiChat } };
+
+      const action = ChatAssistantActions.updateCurrentChat({ chat: { id: 'other', topic: 'Updated Other' } });
+
+      const result = chatAssistantReducer(state, action);
+
+      expect(result.chats).toEqual(chats);
+    });
+
+    it('returns original chats when updatedChat.id is falsy (updatedChat?.id branch)', () => {
+      const chats = [ { id: 'c1', topic: 'Old'} as any];
+      const state: ChatAssistantState = { ...initialState, chats, currentChat: undefined };
+
+      const action = ChatAssistantActions.updateCurrentChat({ chat: undefined  } as any);
+
+      const result = chatAssistantReducer(state, action);
+
+      expect(result.chats).toEqual(chats);
+    });
+  });
+
   describe('searchQueryChanged action', () => {
     it('should update searchQuery when searchQueryChanged is dispatched', () => {
       const action = ChatAssistantActions.searchQueryChanged({ query: 'test query' });
@@ -445,6 +505,41 @@ describe('ChatAssistant Reducer', () => {
 
       expect(result.searchQuery).toBe('test query');
       expect(result.chats).toEqual(initialState.chats);
+    });
+  });
+
+  describe('settingsOpened and settingsClosed actions', () => {
+    it('should set settingsOpen to true when settingsOpened is dispatched', () => {
+      const stateWithSettingsClosed: ChatAssistantState = {
+        ...initialState,
+        settingsOpen: false,
+        currentChat: mockChat,
+      };
+
+      const action = ChatAssistantActions.settingsOpened();
+      const result = chatAssistantReducer(stateWithSettingsClosed, action);
+
+      expect(result).toEqual({
+        ...stateWithSettingsClosed,
+        settingsOpen: true,
+      });
+    });
+
+    it('should set settingsOpen to false when settingsClosed is dispatched', () => {
+      const stateWithSettingsOpen: ChatAssistantState = {
+        ...initialState,
+        settingsOpen: true,
+        currentChat: mockChat,
+        currentMessages: mockMessages,
+      };
+
+      const action = ChatAssistantActions.settingsClosed();
+      const result = chatAssistantReducer(stateWithSettingsOpen, action);
+
+      expect(result).toEqual({
+        ...stateWithSettingsOpen,
+        settingsOpen: false,
+      });
     });
   });
 });
