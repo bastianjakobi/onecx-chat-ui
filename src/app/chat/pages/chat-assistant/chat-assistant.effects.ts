@@ -4,9 +4,10 @@ import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { concatLatestFrom } from '@ngrx/operators';
 import { routerNavigatedAction } from '@ngrx/router-store';
 import { Store } from '@ngrx/store';
-import { catchError, filter, map, of, switchMap } from 'rxjs';
 import { UserService } from '@onecx/angular-integration-interface';
+import { catchError, combineLatestWith, filter, map, of, switchMap } from 'rxjs';
 import { ChatInternalService } from 'src/app/shared/services/chat-internal.service';
+import { parseChatNotification } from 'src/app/shared/utils/notification.utils';
 import {
   Chat,
   ChatsService,
@@ -80,7 +81,10 @@ export class ChatAssistantEffects {
 
   loadChats$ = createEffect(() => {
     return this.actions$.pipe(
-      ofType(ChatAssistantActions.loadChats),
+      ofType(
+        ChatAssistantActions.loadChats,
+        ChatAssistantActions.refreshChatList
+      ),
       concatLatestFrom(() => [
         this.store.select(chatAssistantSelectors.selectChats),
         this.store.select(chatAssistantSelectors.selectTotalAvailableChats),
@@ -119,11 +123,31 @@ export class ChatAssistantEffects {
     );
   });
 
+  handleChatNotifications$ = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(ChatAssistantActions.notificationReceived),
+      filter(({ notification }) => !!notification && notification.body.applicationId === 'onecx-chat'),
+      combineLatestWith(this.store.select(chatAssistantSelectors.selectCurrentChat)),
+      map(([{ notification }, currentChat]) => {
+        const parsed = parseChatNotification(notification);
+        if (parsed?.type === 'update_chat') {
+          if (currentChat?.id === parsed.chatId) {
+            return ChatAssistantActions.refreshCurrentChat();
+          }
+          return ChatAssistantActions.refreshChatList({ reset: true });
+        }
+        return ChatAssistantActions.chatNotificationIgnored();
+      }),
+    );
+  });
+
+
   loadAvailableMessages$ = createEffect(() => {
     return this.actions$.pipe(
       ofType(
         ChatAssistantActions.chatSelected,
         ChatAssistantActions.messageSendingSuccessful,
+        ChatAssistantActions.refreshCurrentChat,
       ),
       concatLatestFrom(() => [
         this.store.select(chatAssistantSelectors.selectCurrentChat),

@@ -1,15 +1,18 @@
 import { CommonModule } from '@angular/common';
 import {
   Component,
+  DestroyRef,
   EventEmitter,
   Input,
   OnChanges,
   Output,
   SimpleChanges,
+  inject,
 } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Store } from '@ngrx/store';
 import { TranslateModule } from '@ngx-translate/core';
+import { NotificationService } from '@onecx/angular-integration-interface';
 import { SharedModule } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { DatePickerModule } from 'primeng/datepicker';
@@ -26,6 +29,7 @@ import { ChatSettingsComponent, ChatSettingsFormValue } from '../../shared/compo
 import { ChatAssistantActions } from './chat-assistant.actions';
 import { selectChatAssistantViewModel } from './chat-assistant.selectors';
 import { ChatAssistantViewModel } from './chat-assistant.viewmodel';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-chat-assistant',
@@ -51,6 +55,7 @@ import { ChatAssistantViewModel } from './chat-assistant.viewmodel';
 export class ChatAssistantComponent implements OnChanges {
   environment = environment;
   viewModel$: Observable<ChatAssistantViewModel>;
+  private readonly destroyRef = inject(DestroyRef);
   protected readonly ChatType = ChatType;
   _sidebarVisible = false;
 
@@ -66,8 +71,14 @@ export class ChatAssistantComponent implements OnChanges {
 
   constructor(
     private readonly store: Store,
+    private readonly notificationService: NotificationService
   ) {
     this.viewModel$ = this.store.select(selectChatAssistantViewModel);
+    this.notificationService.notificationTopic.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(notification => {
+      this.store.dispatch(ChatAssistantActions.notificationReceived({ notification }));
+    });
   }
 
   sendMessage(message: string) {
