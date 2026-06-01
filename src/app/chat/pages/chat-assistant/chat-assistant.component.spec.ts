@@ -3,6 +3,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ReactiveFormsModule } from '@angular/forms';
 import { LetDirective } from '@ngrx/component';
 import { MockStore, provideMockStore } from '@ngrx/store/testing';
+import { NotificationService } from '@onecx/angular-integration-interface';
+import { Subject } from 'rxjs';
 import { AngularAcceleratorModule } from '@onecx/angular-accelerator';
 import { TranslateTestingModule } from 'ngx-translate-testing';
 import { ChatType } from 'src/app/shared/generated';
@@ -14,22 +16,29 @@ describe('ChatAssistantComponent', () => {
   let component: ChatAssistantComponent;
   let fixture: ComponentFixture<ChatAssistantComponent>;
   let store: MockStore;
+  let notificationTopic: Subject<any>;
 
   beforeEach(async () => {
+    notificationTopic = new Subject<any>();
+
     await TestBed.configureTestingModule({
       imports: [
         ChatAssistantComponent,
         AngularAcceleratorModule,
         LetDirective,
         ReactiveFormsModule,
-        TranslateTestingModule.withTranslations(
-          'en',
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-          require('./../../../../assets/i18n/en.json')
-          // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
-        ).withTranslations('de', require('./../../../../assets/i18n/de.json')),
+        TranslateTestingModule.withTranslations({
+          'en': require('./src/assets/i18n/en.json'),
+          'de': require('./src/assets/i18n/de.json')
+        }).withDefaultLanguage('en')
       ],
       providers: [
+        {
+          provide: NotificationService,
+          useValue: {
+            notificationTopic,
+          },
+        },
         provideMockStore({
           initialState: { chat: { assistant: initialState } },
         }),
@@ -56,6 +65,25 @@ describe('ChatAssistantComponent', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
+  });
+
+  it('should dispatch notificationReceived action when notification emitted', () => {
+    jest.spyOn(store, 'dispatch');
+
+    const fakeNotification = {
+      body: {
+        contentMeta: [
+          { key: 'type', value: 'update_chat' },
+          { key: 'chatId', value: '123' }
+        ]
+      }
+    } as unknown as any;
+
+    notificationTopic.next(fakeNotification);
+
+    expect(store.dispatch).toHaveBeenCalledWith(
+      ChatAssistantActions.notificationReceived({ notification: fakeNotification })
+    );
   });
 
   it('should set selectedChatMode and emit sidebarVisibleChange on close', () => {

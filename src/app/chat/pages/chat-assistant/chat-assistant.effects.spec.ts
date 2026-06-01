@@ -13,10 +13,11 @@ import {
   ChatsService,
   ChatType,
   MessageType,
-} from '../../../shared/generated';
+} from 'src/app/shared/generated';
 import { ChatAssistantActions } from './chat-assistant.actions';
 import { ChatAssistantEffects } from './chat-assistant.effects';
 import { chatAssistantSelectors, selectChatTopic } from './chat-assistant.selectors';
+import { createNotification } from 'src/app/shared/utils/notification.test.utils';
 
 // Mock only the filterForNavigatedTo function from @onecx/ngrx-accelerator
 jest.mock('@onecx/ngrx-accelerator', () => ({
@@ -175,7 +176,9 @@ describe('ChatAssistantEffects', () => {
       });
     });
 
-    it('should not dispatch chatInitialized action if already initialized', (done) => {      
+    it('should not dispatch chatInitialized action if already initialized', (done) => {
+      let emitted = false;
+
       store.overrideSelector(chatAssistantSelectors.selectChatInitialized, true);
       const routerAction = routerNavigatedAction({
         payload: {
@@ -186,8 +189,14 @@ describe('ChatAssistantEffects', () => {
       actions$ = of(routerAction);
 
       effects.initChatOnNavigation$.pipe(take(1)).subscribe({
-        next: () => fail('Should not emit'),
-        complete: () => done()
+        next: () => {
+          emitted = true;
+          fail('Should not emit');
+        },
+        complete: () => {
+          expect(emitted).toBeFalsy();
+          done();
+        }
       });
     });
   });
@@ -394,13 +403,6 @@ describe('ChatAssistantEffects', () => {
   });
 
   describe('handleChatNotifications$', () => {
-    const createNotification = (applicationId: string, contentMeta: Array<{ key: string; value: string }>) => ({
-      body: {
-        applicationId,
-        contentMeta,
-      },
-    } as any);
-
     it('should dispatch refreshCurrentChat for update_chat targeting the current chat', (done) => {
       store.overrideSelector(chatAssistantSelectors.selectCurrentChat, mockChat as any);
       store.refreshState();
@@ -425,6 +427,23 @@ describe('ChatAssistantEffects', () => {
       const notification = createNotification('onecx-chat', [
         { key: 'type', value: 'update_chat' },
         { key: 'chatId', value: 'chat2' },
+      ]);
+
+      actions$ = of(ChatAssistantActions.notificationReceived({ notification }));
+
+      effects.handleChatNotifications$.pipe(take(1)).subscribe((result) => {
+        expect(result).toEqual(ChatAssistantActions.refreshChatList({ reset: true }));
+        done();
+      });
+    });
+
+    it('should dispatch refreshChatList when currentChat is undefined and update_chat is received', (done) => {
+      store.overrideSelector(chatAssistantSelectors.selectCurrentChat, undefined);
+      store.refreshState();
+
+      const notification = createNotification('onecx-chat', [
+        { key: 'type', value: 'update_chat' },
+        { key: 'chatId', value: 'chat1' },
       ]);
 
       actions$ = of(ChatAssistantActions.notificationReceived({ notification }));
@@ -481,14 +500,22 @@ describe('ChatAssistantEffects', () => {
     });
 
     it('should not load messages when chat is undefined (covers chat?.id optional chaining)', (done) => {
+      let emitted = false;
+
       store.overrideSelector(chatAssistantSelectors.selectCurrentChat, undefined);
 
       const action = ChatAssistantActions.chatSelected({ chat: undefined as any });
       actions$ = of(action);
 
       effects.loadAvailableMessages$.pipe(take(1)).subscribe({
-        next: () => fail('Should not emit'),
-        complete: () => done()
+        next: () => {
+          emitted = true;
+          fail('Should not emit');
+        },
+        complete: () => {
+          expect(emitted).toBeFalsy();
+          done();
+        }
       });
     });
 
@@ -508,6 +535,8 @@ describe('ChatAssistantEffects', () => {
     });
 
     it('should not load messages when chat id is "new"', (done) => {
+      let emitted = false;
+
       const newChat = { ...mockChat, id: 'new' };
       store.overrideSelector(chatAssistantSelectors.selectCurrentChat, newChat);
 
@@ -515,8 +544,14 @@ describe('ChatAssistantEffects', () => {
       actions$ = of(action);
 
       effects.loadAvailableMessages$.pipe(take(1)).subscribe({
-        next: () => fail('Should not emit'),
-        complete: () => done()
+        next: () => {
+          emitted = true;
+          fail('Should not emit');
+        },
+        complete: () => {
+          expect(emitted).toBeFalsy();
+          done();
+        }
       });
     });
 
@@ -552,12 +587,20 @@ describe('ChatAssistantEffects', () => {
     });
 
     it('should not delete chat when chat is undefined (covers chat?.id optional chaining in filter)', (done) => {
+      let emitted = false;
+
       const action = ChatAssistantActions.deleteChatClicked({ chat: undefined as any });
       actions$ = of(action);
 
       effects.deleteChat$.pipe(take(1)).subscribe({
-        next: () => fail('Should not emit'),
-        complete: () => done()
+        next: () => {
+          emitted = true;
+          fail('Should not emit');
+        },
+        complete: () => {
+          expect(emitted).toBeFalsy();
+          done();
+        }
       });
     });
 
