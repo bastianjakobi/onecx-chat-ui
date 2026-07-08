@@ -351,15 +351,16 @@ export class ChatAssistantEffects implements OnDestroy {
         return gather$.pipe(
           map(
             (context) =>
-              [action, chat, context] as [
+              [action, chat, context, selectedAgent] as [
                 typeof action,
                 typeof chat,
                 (AiContextResponse | null)[],
+                ChatAgent | undefined,
               ],
           ),
         );
       }),
-      switchMap(([action, chat, context]) => {
+      switchMap(([action, chat, context, selectedAgent]) => {
         if (!chat?.id || chat.id === 'new') {
           return of(
             ChatAssistantActions.createNewChatForMessage({
@@ -373,6 +374,9 @@ export class ChatAssistantEffects implements OnDestroy {
             text: action.message,
             awaitResponse: false,
             requestContext: {
+              ...(selectedAgent?.filter
+                ? { filter: selectedAgent.filter }
+                : {}),
               aiContext: context
                 .filter((c): c is AiContextResponse => c !== null)
                 .map((c) => JSON.stringify(c)),
