@@ -10,4 +10,30 @@ export interface ChatAssistantState {
   searchQuery: string;
   totalAvailableChats: number | undefined;
   settingsOpen: boolean;
+  agents: ChatAgent[];
+  selectedAgentId: string;
 }
+
+export interface ChatAgent {
+  id: string;
+  labelKey: string;
+  agentName: string;
+  gatherContext: boolean;
+}
+
+export const DEFAULT_AGENT_ID = 'default';
+
+export const CHAT_AGENTS: ChatAgent[] = [
+  {
+    id: 'default',
+    labelKey: 'CHAT.AGENTS.DEFAULT',
+    agentName: 'assistant',
+    gatherContext: false,
+  },
+  {
+    id: 'event-management',
+    labelKey: 'CHAT.AGENTS.EVENT_MANAGEMENT',
+    agentName: 'event-management',
+    gatherContext: true,
+  },
+];
