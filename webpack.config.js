@@ -70,6 +70,10 @@ const config = withModuleFederationPlugin({
       requiredVersion: 'auto',
       includeSecondaries: true,
     },
+    '@onecx/angular-utils': {
+      requiredVersion: 'auto',
+      includeSecondaries: true,
+    },
     '@onecx/angular-webcomponents': {
       requiredVersion: 'auto',
       includeSecondaries: true,
@@ -79,6 +83,10 @@ const config = withModuleFederationPlugin({
       includeSecondaries: true,
     },
     '@onecx/integration-interface': {
+      requiredVersion: 'auto',
+      includeSecondaries: true,
+    },
+    '@onecx/ngrx-accelerator': {
       requiredVersion: 'auto',
       includeSecondaries: true,
     },
