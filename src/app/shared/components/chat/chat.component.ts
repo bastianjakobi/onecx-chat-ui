@@ -21,7 +21,8 @@ import { CardModule } from 'primeng/card';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ChatMessage } from './chat.viewmodel';
-import { ChatAgent } from '../../../chat/pages/chat-assistant/chat-assistant.state';
+import { TooltipModule } from 'primeng/tooltip';
+import { ChatAgent } from 'src/app/chat/pages/chat-assistant/chat-assistant.state';
 import { SelectModule } from 'primeng/select';
 
 @Component({
@@ -39,6 +40,7 @@ import { SelectModule } from 'primeng/select';
     FormsModule,
     TranslateModule,
     ProgressBarModule,
+    TooltipModule,
   ],
 })
 export class ChatComponent {
