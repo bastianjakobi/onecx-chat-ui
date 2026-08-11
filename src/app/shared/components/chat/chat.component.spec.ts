@@ -237,6 +237,34 @@ describe('ChatComponent', () => {
         component.scrollToBottom(true);
         component.scrollToBottom(false);
       });
+
+      it('should fall back to scrollTop when smooth is true but smooth scroll is not supported', () => {
+        let capturedScrollTop = 0;
+        const nativeEl = {
+          scrollHeight: 2000,
+          set scrollTop(val: number) { capturedScrollTop = val; },
+          get scrollTop() { return capturedScrollTop; },
+        } as unknown as HTMLDivElement;
+
+        asAny(component).messagesContainer = { nativeElement: nativeEl };
+
+        // Simulate no smooth scroll support
+        (CSS as any).supports = jest.fn((prop: string) => {
+          if (prop === 'scroll-behavior') {
+            return false;
+          }
+          return true;
+        });
+
+        component.scrollToBottom(true);
+
+        expect(capturedScrollTop).toBe(2000);
+        expect(component.isAtBottom).toBe(true);
+        expect(component.newMessagesCount).toBe(0);
+
+        // Restore
+        (CSS as any).supports = jest.fn(() => true);
+      });
     });
 
     describe('onIndicatorClick', () => {

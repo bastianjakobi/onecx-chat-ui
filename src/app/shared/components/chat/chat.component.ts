@@ -150,7 +150,8 @@ export class ChatComponent implements OnChanges {
 
   /**
    * Scroll to the bottom of the message container.
-   * Uses smooth scroll when supported, falls back to instant assignment.
+   * Uses smooth scroll when the browser supports it, otherwise falls back
+   * to an instant assignment — without swallowing unrelated errors.
    */
   public scrollToBottom(smooth = true): void {
     const el = this.messagesContainer?.nativeElement;
@@ -158,13 +159,8 @@ export class ChatComponent implements OnChanges {
 
     const targetTop = el.scrollHeight;
 
-    if (smooth) {
-      // Try smooth; polyfill fallback for environments lacking it
-      try {
-        el.scrollTo({ top: targetTop, behavior: 'smooth' });
-      } catch {
-        el.scrollTop = targetTop;
-      }
+    if (smooth && CSS.supports('scroll-behavior', 'smooth') && typeof el.scrollTo === 'function') {
+      el.scrollTo({ top: targetTop, behavior: 'smooth' });
     } else {
       el.scrollTop = targetTop;
     }
