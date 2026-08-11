@@ -141,18 +141,60 @@ describe('ChatComponent', () => {
         expect(component.newMessagesCount).toBe(0);
       });
 
-      it('should increment when messages grow and user is NOT at bottom', () => {
+      it('should increment only for assistant/system messages, not human messages', () => {
         component.isAtBottom = false;
 
         component.chatMessages = [
           { id: '1', text: 'Hello', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
-          { id: '2', text: 'Reply', creationDate: new Date(), type: MessageType.Assistant, userName: 'ai' },
-          { id: '3', text: 'Another', creationDate: new Date(), type: MessageType.Assistant, userName: 'ai' },
+          { id: '2', text: 'My reply', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
+          { id: '3', text: 'AI reply', creationDate: new Date(), type: MessageType.Assistant, userName: 'ai' },
+          { id: '4', text: 'Another AI', creationDate: new Date(), type: MessageType.Assistant, userName: 'ai' },
         ];
 
         component.ngOnChanges({ chatMessages: { currentValue: component.chatMessages, previousValue: null, firstChange: false, isFirstChange: () => { return false; } } });
 
+        // Only the 2 Assistant messages should be counted, not the Human messages
         expect(component.newMessagesCount).toBe(2);
+      });
+
+      it('should increment for progress/loading messages', () => {
+        component.isAtBottom = false;
+
+        component.chatMessages = [
+          { id: '1', text: 'Hello', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
+          { id: '2', text: 'Loading', creationDate: new Date(), type: MessageType.Human, userName: 'alice', isLoadingInfo: true },
+        ];
+
+        component.ngOnChanges({ chatMessages: { currentValue: component.chatMessages, previousValue: null, firstChange: false, isFirstChange: () => { return false; } } });
+
+        // The progress message with isLoadingInfo should be counted
+        expect(component.newMessagesCount).toBe(1);
+      });
+
+      it('should increment for system messages', () => {
+        component.isAtBottom = false;
+
+        component.chatMessages = [
+          { id: '1', text: 'Hello', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
+          { id: '2', text: 'System note', creationDate: new Date(), type: MessageType.System, userName: 'system' },
+        ];
+
+        component.ngOnChanges({ chatMessages: { currentValue: component.chatMessages, previousValue: null, firstChange: false, isFirstChange: () => { return false; } } });
+
+        expect(component.newMessagesCount).toBe(1);
+      });
+
+      it('should NOT increment for human messages only', () => {
+        component.isAtBottom = false;
+
+        component.chatMessages = [
+          { id: '1', text: 'Hello', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
+          { id: '2', text: 'My reply', creationDate: new Date(), type: MessageType.Human, userName: 'alice' },
+        ];
+
+        component.ngOnChanges({ chatMessages: { currentValue: component.chatMessages, previousValue: null, firstChange: false, isFirstChange: () => { return false; } } });
+
+        expect(component.newMessagesCount).toBe(0);
       });
 
       it('should NOT increment when messages grow and user IS at bottom', () => {

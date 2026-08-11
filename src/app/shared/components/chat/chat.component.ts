@@ -30,6 +30,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { ChatAgent } from 'src/app/chat/pages/chat-assistant/chat-assistant.state';
 import { SelectModule } from 'primeng/select';
 import { Subscription } from 'rxjs';
+import { MessageType } from 'src/app/shared/generated';
 
 /**
  * Threshold (in px) from the bottom of the scroll container at which
@@ -96,6 +97,8 @@ export class ChatComponent implements AfterViewInit, OnChanges, OnDestroy {
   private _prevMessageCount = 0;
   /** Whether the initial bottom-scroll has been performed */
   private _initialScrollDone = false;
+  /** Pending scroll flag — set when messages grow before view init */
+  private _needsScrollToBottom = false;
   /** Zone subscription for scroll listener cleanup */
   private _scrollSub: Subscription | null = null;
 
@@ -113,6 +116,12 @@ export class ChatComponent implements AfterViewInit, OnChanges, OnDestroy {
 
   ngAfterViewInit(): void {
     this._setupScrollListener();
+
+    // If messages arrived before view init, scroll immediately.
+    if (this._needsScrollToBottom) {
+      this._scrollToBottom();
+      this._needsScrollToBottom = false;
+    }
 
     // Initial scroll to bottom so chat opens at latest message.
     // We defer to the next microtask so the DOM has rendered.
@@ -132,9 +141,25 @@ export class ChatComponent implements AfterViewInit, OnChanges, OnDestroy {
 
       if (currentCount > this._prevMessageCount) {
         if (this.isAtBottom) {
-          this._scrollToBottomSmooth();
+          // If scroll container is not yet available (before ngAfterViewInit),
+          // set a pending flag so the scroll happens once view init completes.
+          if (!this.scrollContainer) {
+            this._needsScrollToBottom = true;
+          } else {
+            this._scrollToBottomSmooth();
+          }
         } else {
-          this.newMessagesCount += currentCount - this._prevMessageCount;
+          // Only count newly appended assistant/progress/system messages,
+          // not user-authored (Human) messages.
+          const newMessages = this.chatMessages.slice(this._prevMessageCount);
+          const incomingCount = newMessages.filter((m) => {
+            const isAssistantOrSystem =
+              m.type === MessageType.Assistant || m.type === MessageType.System;
+            // Loading placeholders are also progress indicators we care about.
+            const isProgress = !!m.isLoadingInfo;
+            return isAssistantOrSystem || isProgress;
+          }).length;
+          this.newMessagesCount += incomingCount;
         }
       }
 
