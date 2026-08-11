@@ -1,9 +1,10 @@
-<div class="chat-container flex flex-column h-full">
-  <div class="chat-history-container flex-1 overflow-y-auto">
+<div class="chat-container flex flex-column h-full position-relative">
+  <div
+    class="chat-history-container flex-1 overflow-y-auto"
+    #scrollContainer
+  >
     <div
       class="chat-messages flex flex-column gap-4 p-2 align-items-stretch"
-      #scrollContainer
-      [scrollTop]="scrollContainer.scrollHeight"
     >
       @for (message of chatMessages; track message.id) {
         <div
@@ -67,6 +68,25 @@
       }
     </div>
   </div>
+
+  <!-- New-messages floating indicator -->
+  @if (newMessagesCount > 0 && !isAtBottom) {
+    <div class="new-messages-indicator">
+      <button
+        type="button"
+        class="indicator-button"
+        (click)="scrollToBottomAndClear()"
+        [attr.aria-label]="
+          ('CHAT.NEW_MESSAGES_SCROLL' | translate: { count: newMessagesCount })
+        "
+      >
+        <span class="indicator-arrow pi pi-arrow-down"></span>
+        @if (newMessagesCount > 1) {
+          <span class="indicator-badge">{{ newMessagesCount }}</span>
+        }
+      </button>
+    </div>
+  }
 
   <ng-template #messageContent let-message let-align="align">
     @if (!message.isLoadingInfo) {

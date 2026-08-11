@@ -155,6 +155,7 @@
       "DIRECT_SUBTITLE": "with a person",
       "GROUP_SUBTITLE": "work together"
     },
+    "NEW_MESSAGES_SCROLL": "{{count}} new messages",
     "AGENTS": {
       "DEFAULT": "Default Assistant",
       "EVENT_MANAGEMENT": "Event Management",

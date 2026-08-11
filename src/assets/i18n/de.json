@@ -155,6 +155,7 @@
       "DIRECT_SUBTITLE": "mit einer Person",
       "GROUP_SUBTITLE": "gemeinsam arbeiten"
     },
+    "NEW_MESSAGES_SCROLL": "{{count}} neue Nachrichten",
     "AGENTS": {
       "DEFAULT": "Standard-Assistent",
       "EVENT_MANAGEMENT": "Veranstaltungsmanagement",
