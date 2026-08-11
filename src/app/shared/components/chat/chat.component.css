@@ -91,3 +91,135 @@
 :host ::ng-deep .agent-select .p-select-dropdown {
     width: 1.5rem;
 }
+
+/* ===== New Messages Indicator ===== */
+
+/* The chat-container must be the positioning context for the absolute indicator */
+:host ::ng-deep .chat-container {
+  position: relative;
+}
+
+/* The chat-container is the flex column wrapper; position the indicator
+   at the bottom-right of the scrollable area, above the input box */
+.new-messages-indicator {
+  position: absolute;
+  bottom: 72px; /* above the input box (p-2 + input height + footer) */
+  right: 24px;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  margin: 0;
+
+  border: 2px solid transparent;
+  border-radius: 50%;
+  background-color: var(--primary-color, #3b82f6);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+
+  /* Animated gradient border via pseudo-element */
+  box-shadow:
+    0 0 0 2px transparent,
+    0 2px 8px rgba(0, 0, 0, 0.25);
+
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  /* Pulse animation on the border */
+  animation: indicator-pulse 2s ease-in-out infinite;
+}
+
+.new-messages-indicator:hover,
+.new-messages-indicator:focus-visible {
+  transform: scale(1.08);
+  box-shadow:
+    0 0 0 3px rgba(59, 130, 246, 0.4),
+    0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.new-messages-indicator:focus-visible {
+  outline: 2px solid var(--primary-color, #3b82f6);
+  outline-offset: 2px;
+}
+
+/* Animated gradient border ring */
+@keyframes indicator-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 0 rgba(59, 130, 246, 0.5),
+      0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 0 8px rgba(59, 130, 246, 0),
+      0 2px 8px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.indicator-arrow {
+  font-size: 1.1rem;
+  line-height: 1;
+  margin-top: 1px;
+}
+
+.indicator-count {
+  font-size: 0.65rem;
+  line-height: 1;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background-color: var(--danger-button-bg, #ef4444);
+  color: #fff;
+  border-radius: 9px;
+  font-weight: 700;
+}
+
+/* Responsive: adjust position and size on narrow viewports */
+@media (max-width: 600px) {
+  .new-messages-indicator {
+    right: 12px;
+    bottom: 64px;
+    width: 42px;
+    height: 42px;
+  }
+
+  .indicator-count {
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+  }
+
+  .indicator-arrow {
+    font-size: 1rem;
+  }
+}
+
+/* Respect reduced-motion preference — disable pulse animation and smooth transitions */
+@media (prefers-reduced-motion: reduce) {
+  .new-messages-indicator {
+    animation: none;
+    transition: none;
+  }
+
+  .new-messages-indicator:hover,
+  .new-messages-indicator:focus-visible {
+    transform: none;
+  }
+}

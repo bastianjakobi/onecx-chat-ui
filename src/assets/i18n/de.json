@@ -160,6 +160,10 @@
       "EVENT_MANAGEMENT": "Veranstaltungsmanagement",
       "PLACEHOLDER": "Agent auswählen..."
     },
+    "INDICATOR": {
+      "SCROLL_TO_LATEST": "Zum neuesten Nachricht scrollen",
+      "NEW_MESSAGES_COUNT": "{{count}} neue Nachrichten"
+    },
     "SETTINGS": {
       "TITLE": "Einstellungen",
       "INPUT": {
