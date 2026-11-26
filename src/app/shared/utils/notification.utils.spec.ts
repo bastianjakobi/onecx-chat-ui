@@ -37,4 +37,56 @@ describe('notification', () => {
 
     expect(parseChatNotification(notification)).toBeNull();
   });
+
+  describe('malformed notifications', () => {
+    it('should return null and not throw when body is missing', () => {
+      const notification = { applicationId: 'onecx-chat' } as any;
+
+      expect(() => parseChatNotification(notification)).not.toThrow();
+      expect(parseChatNotification(notification)).toBeNull();
+    });
+
+    it('should return null and not throw when contentMeta is missing', () => {
+      const notification = { body: { applicationId: 'onecx-chat' } } as any;
+
+      expect(() => parseChatNotification(notification)).not.toThrow();
+      expect(parseChatNotification(notification)).toBeNull();
+    });
+
+    it('should return null and not throw when contentMeta is not an array', () => {
+      const notification = { body: { applicationId: 'onecx-chat', contentMeta: 'nope' } } as any;
+
+      expect(() => parseChatNotification(notification)).not.toThrow();
+      expect(parseChatNotification(notification)).toBeNull();
+    });
+
+    it('should ignore non-object entries in contentMeta', () => {
+      const notification = {
+        body: {
+          applicationId: 'onecx-chat',
+          contentMeta: [42, { key: 'type', value: 'update_chat' }, { key: 'chatId', value: '123' }]
+        }
+      } as any;
+
+      expect(parseChatNotification(notification)).toEqual({
+        type: 'update_chat',
+        chatId: '123'
+      });
+    });
+
+    it('should ignore contentMeta entries with non-string key or value', () => {
+      const notification = {
+        body: {
+          applicationId: 'onecx-chat',
+          contentMeta: [
+            { key: 1, value: 'update_chat' },
+            { key: 'type', value: 'update_chat' },
+            { key: 'chatId', value: 123 }
+          ]
+        }
+      } as any;
+
+      expect(parseChatNotification(notification)).toBeNull();
+    });
+  });
 });
