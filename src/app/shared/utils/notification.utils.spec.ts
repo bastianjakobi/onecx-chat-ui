@@ -37,4 +37,45 @@ describe('notification', () => {
 
     expect(parseChatNotification(notification)).toBeNull();
   });
+
+  it('should return null when notification has no body', () => {
+    const notification = { body: undefined } as any;
+
+    expect(parseChatNotification(notification)).toBeNull();
+  });
+
+  it('should return null when body has no contentMeta', () => {
+    const notification = { body: { applicationId: 'onecx-chat' } } as any;
+
+    expect(parseChatNotification(notification)).toBeNull();
+  });
+
+  it('should return null when contentMeta is not an array', () => {
+    const stringMeta = createNotification('onecx-chat', 'not-an-array' as any);
+    const objectMeta = createNotification('onecx-chat', { key: 'type', value: 'update_chat' } as any);
+
+    expect(parseChatNotification(stringMeta)).toBeNull();
+    expect(parseChatNotification(objectMeta)).toBeNull();
+  });
+
+  it('should ignore contentMeta entries that are not objects with string key and value', () => {
+    const notification = {
+      body: {
+        applicationId: 'onecx-chat',
+        contentMeta: [
+          42,
+          null,
+          { key: 'type', value: 'update_chat' },
+          { key: 'chatId' },
+          { key: 1, value: 'chatId' },
+          { key: 'chatId', value: '123' }
+        ]
+      }
+    } as any;
+
+    expect(parseChatNotification(notification)).toEqual({
+      type: 'update_chat',
+      chatId: '123'
+    });
+  });
 });

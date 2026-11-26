@@ -12,7 +12,13 @@ export interface KeyValue {
 
 export function parseChatNotification(notification: Notification): UpdateChatNotification | null {
   // Metadata is inside body.contentMeta
-  const meta = notification.body.contentMeta as KeyValue[];
+  const contentMeta = notification?.body?.contentMeta;
+  if (!Array.isArray(contentMeta)) {
+    return null;
+  }
+  const meta = contentMeta.filter(
+    (m): m is KeyValue => m != null && typeof m === 'object' && typeof m.key === 'string' && typeof m.value === 'string'
+  );
   const type = meta.find((m: KeyValue) => m.key === 'type')?.value;
   const chatId = meta.find((m: KeyValue) => m.key === 'chatId')?.value;
 
